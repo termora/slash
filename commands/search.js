@@ -30,6 +30,28 @@ module.exports = class SearchCommand extends SlashCommand {
         order by rank desc
         limit 5`;
 
+        if (ctx.guildID) {
+            try {
+                let res = await this.db.query("select $1 = any(server.blacklist) as blacklisted from (select * from public.servers where id = $2) as server", [ctx.channelID, ctx.guildID]);
+
+                if (res.rows[0].blacklisted) {
+                    await ctx.send({
+                        content: "This channel is blacklisted from commands.",
+                        ephemeral: true
+                    });
+                    return;
+                }
+            } catch (e) {
+                this.creator.logger.error("Command define:", e);
+                Sentry.captureException(e);
+                await ctx.send({
+                    content: "Internal error occurred.",
+                    ephemeral: true
+                });
+                return;
+            }
+        }
+
         await ctx.defer();
 
         let res;

@@ -25,6 +25,28 @@ module.exports = class DefineCommand extends SlashCommand {
         array(select display from public.tags where normalized = any(t.tags)) as display_tags
         from public.terms as t, public.categories as c where (t.name ilike $1 or $1 ilike any(t.aliases)) and t.category = c.id limit 1`
 
+        if (ctx.guildID) {
+            try {
+                let res = await this.db.query("select $1 = any(server.blacklist) as blacklisted from (select * from public.servers where id = $2) as server", [ctx.channelID, ctx.guildID]);
+
+                if (res.rows[0].blacklisted) {
+                    await ctx.send({
+                        content: "This channel is blacklisted from commands.",
+                        ephemeral: true
+                    });
+                    return;
+                }
+            } catch (e) {
+                this.creator.logger.error("Command define:", e);
+                Sentry.captureException(e);
+                await ctx.send({
+                    content: "Internal error occurred.",
+                    ephemeral: true
+                });
+                return;
+            }
+        }
+
         await ctx.defer();
 
         let res;
