@@ -22,7 +22,7 @@ module.exports = class HelpCommand extends SlashCommand {
                     '\n\n`/explain nv`, `/explain sv`, `/explain plurality`, `/explain typing quirks`: quickly explain non-verbality, semi-verbality, plurality and proxying, and typing quirks.'
       }, {
         name: 'Source code',
-        value: 'The source code for the slash commands are available [here](https://github.com/termora/slash), the source code for the rest of the bot is available [here](https://github.com/termora/berry).'
+        value: 'The source code for the slash commands is available [here](https://github.com/termora/slash), the source code for the rest of the bot is available [here](https://github.com/termora/berry).'
       }]
     }
 
