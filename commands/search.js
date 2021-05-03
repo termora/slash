@@ -1,7 +1,7 @@
 const Sentry = require('@sentry/node')
 const { SlashCommand, CommandOptionType } = require('slash-create')
 
-const { termEmbed } = require('../termEmbed')
+const termEmbed = require('../termEmbed')
 
 module.exports = class SearchCommand extends SlashCommand {
   constructor (creator) {

@@ -2,7 +2,7 @@ const Sentry = require('@sentry/node')
 const { SlashCommand } = require('slash-create')
 const sample = require('lodash.sample')
 
-const { termEmbed } = require('../termEmbed')
+const termEmbed = require('../termEmbed')
 
 module.exports = class RandomCommand extends SlashCommand {
   constructor (creator) {
