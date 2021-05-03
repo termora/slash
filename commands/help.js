@@ -18,6 +18,7 @@ module.exports = class HelpCommand extends SlashCommand {
                 name: "Commands",
                 value: "`/search`: search for terms in the database. This will only show a maximum of 5 results, for more, please use `t;search` or the website." +
                     "\n\n`/define`: define a single term." +
+                    "\n\n`/random`: show a random term" +
                     "\n\n`/explain nv`, `/explain sv`, `/explain plurality`, `/explain typing quirks`: quickly explain non-verbality, semi-verbality, plurality and proxying, and typing quirks."
             }, {
                 name: "Source code",
