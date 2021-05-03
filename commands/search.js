@@ -60,9 +60,19 @@ module.exports = class SearchCommand extends SlashCommand {
 
         let respFields = [];
         for (const term of res.rows) {
+            let headline = term.headline;
+
+            if (!term.headline.startsWith(term.description.slice(0, 5))) {
+                headline = "..." + headline
+            }
+
+            if (!term.headline.endsWith(term.description.slice(term.description.length - 5))) {
+                headline = headline + "..."
+            }
+
             respFields.push({
                 name: '_ _',
-                value: `**▶️ ${term.name}${term.aliases.length > 0 ? ", " + term.aliases.join(', ') : ''}**\n${term.headline}`
+                value: `**▶️ ${term.name}${term.aliases.length > 0 ? ", " + term.aliases.join(', ') : ''}**\n${headline}`
             });
         }
 
