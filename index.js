@@ -15,7 +15,7 @@ const creator = new SlashCreator({
     applicationID: process.env.APPLICATION_ID,
     publicKey: process.env.PUBLIC_KEY,
     token: process.env.TOKEN,
-    serverPort: 8080,
+    serverPort: process.env.PORT || 8080,
 });
 
 const logger = new CatLoggr().setLevel(process.env.COMMANDS_DEBUG === 'true' ? 'debug' : 'info');
