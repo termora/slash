@@ -1,0 +1,20 @@
+{
+  "name": "termora-slash",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Starshine System",
+  "license": "AGPL-3.0-or-later",
+  "dependencies": {
+    "@sentry/node": "^6.3.5",
+    "@sentry/tracing": "^6.3.5",
+    "cat-loggr": "^1.1.0",
+    "dotenv": "^8.2.0",
+    "fastify": "^3.15.1",
+    "pg": "^8.6.0",
+    "slash-create": "^3.1.0"
+  }
+}
