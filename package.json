@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "eslint ."
   },
   "author": "Starshine System",
   "license": "AGPL-3.0-or-later",
@@ -17,5 +17,25 @@
     "lodash.sample": "^4.2.1",
     "pg": "^8.6.0",
     "slash-create": "^3.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.25.0",
+    "eslint-config-standard": "^16.0.2",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^4.3.1"
+  },
+  "eslintConfig": {
+    "env": {
+      "browser": true,
+      "commonjs": true,
+      "es2021": true
+    },
+    "extends": [
+      "standard"
+    ],
+    "parserOptions": {
+      "ecmaVersion": 12
+    }
   }
 }

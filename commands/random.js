@@ -1,76 +1,43 @@
-const Sentry = require("@sentry/node");
-const { SlashCommand, CommandOptionType } = require('slash-create');
-const sample = require("lodash.sample");
+const { SlashCommand } = require('slash-create')
+const sample = require('lodash.sample')
 
-const { termEmbed } = require("../termEmbed");
+const { wrapSentry, isBlacklisted } = require('../utils/utils')
+const termEmbed = require('../utils/termEmbed')
+
+const sql = `select t.id, t.category, c.name as category_name, t.name, t.aliases, t.description, t.note, t.source, t.created, t.last_modified, t.content_warnings, t.flags, t.tags,
+array(select display from public.tags where normalized = any(t.tags)) as display_tags
+from public.terms as t, public.categories as c
+where t.flags & 2 = 0 and t.category = c.id
+order by t.id`
 
 module.exports = class RandomCommand extends SlashCommand {
-    constructor(creator) {
-        super(creator, {
-            name: 'random',
-            description: 'Show a random term'
-        });
-        this.filePath = __filename;
-        this.db = creator.db;
-    }
+  constructor (creator) {
+    super(creator, {
+      name: 'random',
+      description: 'Show a random term'
+    })
+    this.filePath = __filename
+    this.db = creator.db
+  }
 
-    async run(ctx) {
-        const sql = `select t.id, t.category, c.name as category_name, t.name, t.aliases, t.description, t.note, t.source, t.created, t.last_modified, t.content_warnings, t.flags, t.tags,
-        array(select display from public.tags where normalized = any(t.tags)) as display_tags
-        from public.terms as t, public.categories as c
-        where t.flags & 2 = 0 and t.category = c.id
-        order by t.id`
+  async run (ctx) {
+    await wrapSentry('random', this.creator.logger, ctx, async () => {
+      if (await isBlacklisted(ctx, this.db)) return
 
-        if (ctx.guildID) {
-            try {
-                let res = await this.db.query("select $1 = any(server.blacklist) as blacklisted from (select * from public.servers where id = $2) as server", [ctx.channelID, ctx.guildID]);
+      await ctx.defer()
 
-                if (res.rows[0].blacklisted) {
-                    await ctx.send({
-                        content: "This channel is blacklisted from commands.",
-                        ephemeral: true
-                    });
-                    return;
-                }
-            } catch (e) {
-                this.creator.logger.error("Command define:", e);
-                Sentry.captureException(e);
-                await ctx.send({
-                    content: "Internal error occurred.",
-                    ephemeral: true
-                });
-                return;
-            }
-        }
+      const res = await this.db.query(sql)
 
-        await ctx.defer();
+      if (res.rows.length === 0) {
+        await ctx.editOriginal('No terms found.')
+        return
+      }
 
-        let res;
-        try {
-            res = await this.db.query(sql);
-        } catch (e) {
-            this.creator.logger.error("Command random:", e);
-            Sentry.captureException(e);
-            await ctx.editOriginal("Internal error occurred.");
-            return;
-        }
+      const term = sample(res.rows)
 
-        if (res.rows.length == 0) {
-            await ctx.editOriginal("No terms found.");
-            return;
-        }
-
-        let term = sample(res.rows);
-
-        try {
-            await ctx.editOriginal({
-                embeds: [termEmbed(term)]
-            });
-        } catch (e) {
-            this.creator.logger.error("Command define:", e);
-            Sentry.captureException(e);
-            await ctx.editOriginal("Internal error occurred.");
-        }
-        return;
-    }
+      await ctx.editOriginal({
+        embeds: [termEmbed(term)]
+      })
+    })
+  }
 }
