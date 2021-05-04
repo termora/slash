@@ -1,7 +1,7 @@
 const { SlashCommand, CommandOptionType } = require('slash-create')
 
 const { wrapSentry, isBlacklisted } = require('../utils/utils')
-const termEmbed = require('../termEmbed')
+const termEmbed = require('../utils/termEmbed')
 
 const sql = `select
   t.id, t.category, c.name as category_name, t.name, t.aliases, t.description, t.note, t.source, t.created, t.last_modified, t.flags, t.tags, t.content_warnings, t.image_url,
@@ -30,8 +30,8 @@ module.exports = class SearchCommand extends SlashCommand {
   }
 
   async run (ctx) {
-    await wrapSentry('query', ctx, async () => {
-      if (await isBlacklisted(ctx)) return
+    await wrapSentry('query', this.creator.logger, ctx, async () => {
+      if (await isBlacklisted(ctx, this.db)) return
 
       await ctx.defer()
 

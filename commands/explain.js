@@ -21,7 +21,7 @@ module.exports = class ExplainCommand extends SlashCommand {
   }
 
   async run (ctx) {
-    wrapSentry('explain', ctx, async () => {
+    wrapSentry('explain', this.creator.logger, ctx, async () => {
       const res = await this.db.query(sql, [ctx.options.topic])
 
       if (res.rows.length === 0 || !res.rows[0]) {

@@ -1,11 +1,11 @@
 const Sentry = require('@sentry/node')
 
 module.exports = {
-  async wrapSentry (name, ctx, func) {
+  async wrapSentry (name, logger, ctx, func) {
     try {
       return await func()
     } catch (e) {
-      this.creator.logger.error(`Command ${name}`, e)
+      logger.error(`Command ${name}`, e)
       Sentry.captureException(e)
       await ctx.send({
         content: 'Internal error occurred.',
