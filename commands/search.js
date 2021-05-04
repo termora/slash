@@ -1,7 +1,17 @@
-const Sentry = require('@sentry/node')
 const { SlashCommand, CommandOptionType } = require('slash-create')
 
+const { wrapSentry, isBlacklisted } = require('../utils/utils')
 const termEmbed = require('../termEmbed')
+
+const sql = `select
+  t.id, t.category, c.name as category_name, t.name, t.aliases, t.description, t.note, t.source, t.created, t.last_modified, t.flags, t.tags, t.content_warnings, t.image_url,
+  array(select display from public.tags where normalized = any(t.tags)) as display_tags,
+  ts_rank_cd(t.searchtext, websearch_to_tsquery('english', $1), 8) as rank,
+  ts_headline(t.description, websearch_to_tsquery('english', $1), 'StartSel=**, StopSel=**') as headline
+  from public.terms as t, public.categories as c
+  where t.searchtext @@ websearch_to_tsquery('english', $1) and t.category = c.id and t.flags & 1 = 0
+  order by rank desc
+  limit 5`
 
 module.exports = class SearchCommand extends SlashCommand {
   constructor (creator) {
@@ -20,107 +30,67 @@ module.exports = class SearchCommand extends SlashCommand {
   }
 
   async run (ctx) {
-    const query = `select
-        t.id, t.category, c.name as category_name, t.name, t.aliases, t.description, t.note, t.source, t.created, t.last_modified, t.flags, t.tags, t.content_warnings, t.image_url,
-        array(select display from public.tags where normalized = any(t.tags)) as display_tags,
-        ts_rank_cd(t.searchtext, websearch_to_tsquery('english', $1), 8) as rank,
-        ts_headline(t.description, websearch_to_tsquery('english', $1), 'StartSel=**, StopSel=**') as headline
-        from public.terms as t, public.categories as c
-        where t.searchtext @@ websearch_to_tsquery('english', $1) and t.category = c.id and t.flags & 1 = 0
-        order by rank desc
-        limit 5`
+    await wrapSentry('query', ctx, async () => {
+      if (await isBlacklisted(ctx)) return
 
-    if (ctx.guildID) {
-      try {
-        const res = await this.db.query('select $1 = any(server.blacklist) as blacklisted from (select * from public.servers where id = $2) as server', [ctx.channelID, ctx.guildID])
+      await ctx.defer()
 
-        if (res.rows[0].blacklisted) {
-          await ctx.send({
-            content: 'This channel is blacklisted from commands.',
-            ephemeral: true
-          })
-          return
+      const res = await this.db.query(sql, [ctx.options.query])
+
+      let resp
+
+      switch (res.rows.length) {
+        case 0: {
+          resp = 'No results with that name found.' +
+          (process.env.WEBSITE ? `\nTry [the website](${process.env.WEBSITE}) for a list of terms and more in-depth search.` : '')
+          break
         }
-      } catch (e) {
-        this.creator.logger.error('Command define:', e)
-        Sentry.captureException(e)
-        await ctx.send({
-          content: 'Internal error occurred.',
-          ephemeral: true
-        })
-        return
-      }
-    }
+        case 1: {
+          const term = res.rows[0]
+          resp = { embeds: [termEmbed(term)] }
+          break
+        }
+        default: {
+          const respFields = []
+          for (const term of res.rows) {
+            let headline = term.headline
 
-    await ctx.defer()
+            if (!term.headline.startsWith(term.description.slice(0, 5))) {
+              headline = '...' + headline
+            }
 
-    let res
-    try {
-      res = await this.db.query(query, [ctx.options.query])
-    } catch (e) {
-      this.creator.logger.error('Command search:', e)
-      Sentry.captureException(e)
-      await ctx.editOriginal('An internal error occurred.')
-      return
-    }
+            if (!term.headline.endsWith(term.description.slice(term.description.length - 5))) {
+              headline = headline + '...'
+            }
 
-    if (res.rows.length === 0) {
-      let text = 'No results with that name found.'
-      text += process.env.WEBSITE ? `\nTry [the website](${process.env.WEBSITE}) for a list of terms and more in-depth search.` : ''
+            respFields.push({
+              name: '_ _',
+              value: `**▶️ ${term.name}${term.aliases.length > 0 ? ', ' + term.aliases.join(', ') : ''}**\n${headline}`
+            })
+          }
 
-      await ctx.editOriginal(text)
-      return
-    }
+          respFields.push({
+            name: '_ _',
+            value: "To get a term's full description, use `/define term`."
+          })
 
-    if (res.rows.length === 1) {
-      const term = res.rows[0]
-      await ctx.editOriginal({
-        embeds: [termEmbed(term)]
-      })
-      return
-    }
+          const url = process.env.WEBSITE ? `${process.env.WEBSITE}/search/?q=${encodeURIComponent(ctx.options.query)}` : null
 
-    const respFields = []
-    for (const term of res.rows) {
-      let headline = term.headline
+          resp = {
+            embeds: [{
+              color: 0xd14171,
+              title: `Search results for "${ctx.options.query}"`,
+              url: url,
+              description: url ? `Please use [the website](${url}) for more in-depth search results!` : '',
+              fields: respFields
+            }]
+          }
 
-      if (!term.headline.startsWith(term.description.slice(0, 5))) {
-        headline = '...' + headline
+          break
+        }
       }
 
-      if (!term.headline.endsWith(term.description.slice(term.description.length - 5))) {
-        headline = headline + '...'
-      }
-
-      respFields.push({
-        name: '_ _',
-        value: `**▶️ ${term.name}${term.aliases.length > 0 ? ', ' + term.aliases.join(', ') : ''}**\n${headline}`
-      })
-    }
-
-    respFields.push({
-      name: '_ _',
-      value: "To get a term's full description, use `/define term`."
-    })
-
-    const url = process.env.WEBSITE ? `${process.env.WEBSITE}/search/?q=${encodeURIComponent(ctx.options.query)}` : null
-
-    const resp = {
-      embeds: [{
-        color: 0xd14171,
-        title: `Search results for "${ctx.options.query}"`,
-        url: url,
-        description: url ? `Please use [the website](${url}) for more in-depth search results!` : '',
-        fields: respFields
-      }]
-    }
-
-    try {
       await ctx.editOriginal(resp)
-    } catch (e) {
-      this.creator.logger.error('Command search:', e)
-      Sentry.captureException(e)
-      await ctx.editOriginal('Internal error occurred.')
-    }
+    })
   }
 }
