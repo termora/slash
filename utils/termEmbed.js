@@ -22,6 +22,8 @@ function termEmbed (term) {
   embed.url = process.env.WEBSITE ? `${process.env.WEBSITE}/term/${encodeURIComponent(term.name)}` : null
 
   if (cw !== '') {
+    description = `||${description}||`
+
     if (description.length < 1024) {
       embed.description = `**Content warning: ${cw}**`
       embed.fields.push({
