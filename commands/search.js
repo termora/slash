@@ -63,41 +63,31 @@ module.exports = class SearchCommand extends SlashCommand {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.PRIMARY,
                 custom_id: 'term_1',
-                emoji: {
-                  name: '1️⃣'
-                }
+                label: '1'
               },
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.PRIMARY,
                 custom_id: 'term_2',
-                emoji: {
-                  name: '2️⃣'
-                }
+                label: '2'
               },
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.PRIMARY,
                 custom_id: 'term_3',
-                emoji: {
-                  name: '3️⃣'
-                }
+                label: '3'
               },
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.PRIMARY,
                 custom_id: 'term_4',
-                emoji: {
-                  name: '4️⃣'
-                }
+                label: '4'
               },
               {
                 type: ComponentType.BUTTON,
                 style: ButtonStyle.PRIMARY,
                 custom_id: 'term_5',
-                emoji: {
-                  name: '5️⃣'
-                }
+                label: '5'
               }
             ]
           }]
