@@ -1,7 +1,8 @@
-const { SlashCommand, CommandOptionType } = require('slash-create')
+const { SlashCommand, CommandOptionType, ComponentType, ButtonStyle } = require('slash-create')
 
 const { wrapSentry, isBlacklisted } = require('../utils/utils')
 const termEmbed = require('../utils/termEmbed')
+const searchPages = require('../utils/searchPages')
 
 const sql = `select
   t.id, t.category, c.name as category_name, t.name, t.aliases, t.description, t.note, t.source, t.created, t.last_modified, t.flags, t.tags, t.content_warnings, t.image_url,
@@ -11,13 +12,13 @@ const sql = `select
   from public.terms as t, public.categories as c
   where t.searchtext @@ websearch_to_tsquery('english', $1) and t.category = c.id and t.flags & 1 = 0
   order by rank desc
-  limit 5`
+  limit 50`
 
 module.exports = class SearchCommand extends SlashCommand {
   constructor (creator) {
     super(creator, {
       name: 'search',
-      description: 'Search for terms (maximum of 5 results)',
+      description: 'Search for terms',
       options: [{
         type: CommandOptionType.STRING,
         name: 'query',
@@ -38,11 +39,12 @@ module.exports = class SearchCommand extends SlashCommand {
       const res = await this.db.query(sql, [ctx.options.query])
 
       let resp
+      let embeds = []
 
       switch (res.rows.length) {
         case 0: {
           resp = 'No results with that name found.' +
-          (process.env.WEBSITE ? `\nTry [the website](${process.env.WEBSITE}) for a list of terms and more in-depth search.` : '')
+          (process.env.WEBSITE ? `\nTry [the website](<${process.env.WEBSITE}>) for a list of terms and more in-depth search.` : '')
           break
         }
         case 1: {
@@ -51,39 +53,226 @@ module.exports = class SearchCommand extends SlashCommand {
           break
         }
         default: {
-          const respFields = []
-          for (const term of res.rows) {
-            let headline = term.headline
+          embeds = await searchPages(ctx, res.rows)
+          let page = 0
 
-            if (!term.headline.startsWith(term.description.slice(0, 5))) {
-              headline = '...' + headline
-            }
-
-            if (!term.headline.endsWith(term.description.slice(term.description.length - 5))) {
-              headline = headline + '...'
-            }
-
-            respFields.push({
-              name: '_ _',
-              value: `**▶️ ${term.name}${term.aliases.length > 0 ? ', ' + term.aliases.join(', ') : ''}**\n${headline}`
-            })
-          }
-
-          respFields.push({
-            name: '_ _',
-            value: "To get a term's full description, use `/define term`."
-          })
-
-          const url = process.env.WEBSITE ? `${process.env.WEBSITE}/search/?q=${encodeURIComponent(ctx.options.query)}` : null
+          const components = [{
+            type: ComponentType.ACTION_ROW,
+            components: [
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.PRIMARY,
+                custom_id: 'term_1',
+                emoji: {
+                  name: '1️⃣'
+                }
+              },
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.PRIMARY,
+                custom_id: 'term_2',
+                emoji: {
+                  name: '2️⃣'
+                }
+              },
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.PRIMARY,
+                custom_id: 'term_3',
+                emoji: {
+                  name: '3️⃣'
+                }
+              },
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.PRIMARY,
+                custom_id: 'term_4',
+                emoji: {
+                  name: '4️⃣'
+                }
+              },
+              {
+                type: ComponentType.BUTTON,
+                style: ButtonStyle.PRIMARY,
+                custom_id: 'term_5',
+                emoji: {
+                  name: '5️⃣'
+                }
+              }
+            ]
+          }]
 
           resp = {
-            embeds: [{
-              color: 0xd14171,
-              title: `Search results for "${ctx.options.query}"`,
-              url: url,
-              description: url ? `Please use [the website](${url}) for more in-depth search results!` : '',
-              fields: respFields
-            }]
+            embeds: [embeds[0]],
+            components: components
+          }
+
+          await ctx.editOriginal({ embeds: [embeds[0]] })
+
+          ctx.registerComponent('term_1', async (btnCtx) => {
+            if (ctx.user.id !== btnCtx.user.id) {
+              await btnCtx.acknowledge()
+              return
+            }
+
+            let n = 0
+            n += page * 5
+
+            if (n >= res.rows.length) {
+              await btnCtx.acknowledge()
+              return
+            }
+
+            await btnCtx.editParent({
+              embeds: [termEmbed(res.rows[n])],
+              components: []
+            })
+          })
+
+          ctx.registerComponent('term_2', async (btnCtx) => {
+            if (ctx.user.id !== btnCtx.user.id) {
+              await btnCtx.acknowledge()
+              return
+            }
+
+            let n = 1
+            n += page * 5
+
+            if (n >= res.rows.length) {
+              await btnCtx.acknowledge()
+              return
+            }
+
+            await btnCtx.editParent({
+              embeds: [termEmbed(res.rows[n])],
+              components: []
+            })
+          })
+
+          ctx.registerComponent('term_3', async (btnCtx) => {
+            if (ctx.user.id !== btnCtx.user.id) {
+              await btnCtx.acknowledge()
+              return
+            }
+
+            let n = 2
+            n += page * 5
+
+            if (n >= res.rows.length) {
+              await btnCtx.acknowledge()
+              return
+            }
+
+            await btnCtx.editParent({
+              embeds: [termEmbed(res.rows[n])],
+              components: []
+            })
+          })
+
+          ctx.registerComponent('term_4', async (btnCtx) => {
+            if (ctx.user.id !== btnCtx.user.id) {
+              await btnCtx.acknowledge()
+              return
+            }
+
+            let n = 3
+            n += page * 5
+
+            if (n >= res.rows.length) {
+              await btnCtx.acknowledge()
+              return
+            }
+
+            await btnCtx.editParent({
+              embeds: [termEmbed(res.rows[n])],
+              components: []
+            })
+          })
+
+          ctx.registerComponent('term_5', async (btnCtx) => {
+            if (ctx.user.id !== btnCtx.user.id) {
+              await btnCtx.acknowledge()
+              return
+            }
+
+            let n = 4
+            n += page * 5
+
+            if (n >= res.rows.length) {
+              await btnCtx.acknowledge()
+              return
+            }
+
+            await btnCtx.editParent({
+              embeds: [termEmbed(res.rows[n])],
+              components: []
+            })
+          })
+
+          if (embeds.length > 1) {
+            components.push({
+              type: ComponentType.ACTION_ROW,
+              components: [
+                {
+                  type: ComponentType.BUTTON,
+                  style: ButtonStyle.PRIMARY,
+                  custom_id: 'prev_page',
+                  emoji: {
+                    name: '⬅️'
+                  }
+                },
+                {
+                  type: ComponentType.BUTTON,
+                  style: ButtonStyle.PRIMARY,
+                  custom_id: 'next_page',
+                  emoji: {
+                    name: '➡️'
+                  }
+                }
+              ]
+            })
+
+            ctx.registerComponent('prev_page', async (btnCtx) => {
+              if (ctx.user.id !== btnCtx.user.id) {
+                await btnCtx.acknowledge()
+                return
+              }
+
+              let newPage = page - 1
+              if (newPage < 0) {
+                newPage = embeds.length - 1
+              } else if (newPage > embeds.length - 1) {
+                newPage = 0
+              }
+
+              page = newPage
+
+              await btnCtx.editParent({
+                embeds: [embeds[newPage]],
+                components: components
+              })
+            })
+
+            ctx.registerComponent('next_page', async (btnCtx) => {
+              if (ctx.user.id !== btnCtx.user.id) {
+                await btnCtx.acknowledge()
+                return
+              }
+
+              let newPage = page + 1
+              if (newPage < 0) {
+                newPage = embeds.length - 1
+              } else if (newPage > embeds.length - 1) {
+                newPage = 0
+              }
+
+              page = newPage
+
+              await btnCtx.editParent({
+                embeds: [embeds[newPage]],
+                components: components
+              })
+            })
           }
 
           break

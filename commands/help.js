@@ -6,7 +6,7 @@ const embed = {
   description: `This is a version of Termora using slash commands! For all features, please use the full version of the bot.\n\nIf you invited the bot using its normal invite link, simply use \`t;help\` for info about that version; otherwise, you can invite the bot with [this link](https://discord.com/api/oauth2/authorize?client_id=${process.env.APPLICATION_ID}&permissions=388160&scope=applications.commands%20bot).`,
   fields: [{
     name: 'Commands',
-    value: '`/search`: search for terms in the database. This will only show a maximum of 5 results, for more, please use `t;search` or the website.' +
+    value: '`/search`: search for terms.' +
                 '\n\n`/define`: define a single term.' +
                 '\n\n`/random`: show a random term' +
                 '\n\n`/explain nv`, `/explain sv`, `/explain plurality`, `/explain typing quirks`: quickly explain non-verbality, semi-verbality, plurality and proxying, and typing quirks.'
