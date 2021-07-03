@@ -26,6 +26,13 @@ module.exports = class HelpCommand extends SlashCommand {
   }
 
   async run (ctx) {
+    if (process.env.SUPPORT_SERVER) {
+      embed.fields.push({
+        name: 'Support server',
+        value: `Use this link to join the support server, for bot questions and term additions/requests: ${process.env.SUPPORT_SERVER}`
+      })
+    }
+
     await ctx.send({ embeds: [embed] })
   }
 }
